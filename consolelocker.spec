@@ -22,10 +22,13 @@ This package contains a daemon for lock console terminal and virtual consoles.
 
 %install
 %make_install install DESTDIR=%buildroot
+%__mkdir_p %buildroot/%_bindir
+%__install -D -m755 consolelock %buildroot/%_bindir/
 %__install -D -m644 %name.cronjob %buildroot/%_sysconfdir/cron.d/%name
 %__install -D -m755 %name.service %buildroot/%_initrddir/%name
 
 %files
+%_bindir/*
 %_sbindir/*
 %_initrddir/*
 %config(noreplace) %_sysconfdir/cron.d/%name

@@ -14,7 +14,7 @@
  * 
  * You should have received a copy of the GNU General Public License 
  * along with this program; if not, write to the Free Software 
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
  ***** END LICENSE BLOCK ******/
 
 #include <stdio.h>
@@ -58,19 +58,17 @@ gid_t fifo_group;
 
 static void __attribute__ ((noreturn))
 print_help(int ret)  {
-	printf("Usage: %s [OPTIONS]\n", __progname);
-	printf("\n");
-	printf("%s is a program to lock sessions on the Linux console\n", __progname);
-	printf("and virtual consoles. After startup it open FIFO to read\n");
-	printf("events from console user.\n");
-	printf("This program is simple wrapper for vlock(1).\n");
-	printf("\n");
-	printf("Options:\n");
-	printf("  -D, --nodaemon   When this option is specified sshd will\n");
-	printf("                   not detach and does not become a daemon.\n");
-	printf("  -V, --version    print program version and exit.\n");
-	printf("  -h, --help       output a brief help message.\n");
-	printf("\n");
+	printf("Usage: %s [OPTIONS]\n\n"
+	       "This is a program to lock sessions on the Linux console\n"
+	       "and virtual consoles. After startup it open FIFO to read\n"
+	       "events from console user.\n"
+	       "This program is simple wrapper for vlock(1).\n\n"
+	       "Options:\n"
+	       "  -D, --nodaemon   When this option is specified sshd will\n"
+	       "                   not detach and does not become a daemon.\n"
+	       "  -V, --version    print program version and exit.\n"
+	       "  -h, --help       output a brief help message.\n\n",
+	       __progname);
 	exit(ret);
 }
 
@@ -94,8 +92,8 @@ sigchld_handler(int sig __attribute__((__unused__))) {
 
 	if (retval == 0)
 		return;
-		
-	if (state)
+	
+	if (state != STATE_READY)
 		state = STATE_READY;
 
 	if (lock_process)
@@ -157,6 +155,15 @@ exist(const char *filename) {
 	return 1;
 }
 
+static long int
+read_retry(int fd) {
+	char c;
+	long int retval;
+        do retval = read(fd, &c, sizeof(c));
+        while (retval == -1 && (errno == EINTR || errno == EAGAIN));
+        return retval;
+}
+
 static int
 daemonize(void) {
 	int reopen_fifo = 1, fd = -1, rc = EXIT_SUCCESS;
@@ -189,8 +196,7 @@ daemonize(void) {
 }
 
 	while (goto_finish == 0) {
-		char c;
-		int retval;
+		long int retval;
 
 		if (!exist(consolelock_path)) {
 			if (state == STATE_LOCKED && lock_process > 0) {
@@ -221,8 +227,8 @@ daemonize(void) {
 		FD_ZERO(&rfds);
 		FD_SET(fd, &rfds);
       
-		/* Wait up to three seconds. */
-		tv.tv_sec = 3;
+		/* Wait up to five seconds. */
+		tv.tv_sec = 5;
 		tv.tv_usec = 0;
 		
 		retval = -1;
@@ -234,13 +240,14 @@ daemonize(void) {
 		
 		if (retval == 0)
 			continue;
-	
-		while ((retval = read(fd, &c, sizeof(c))) == 1) {
+
+		while ((read_retry(fd)) == 1) {
 			if (state != STATE_READY)
 				continue;
 			state = STATE_LOCKED;
 			lock_process = authorize();
-		}
+		}		
+
 		xassert_loop(retval, "read");
 		reopen_fifo = 1;
 	}

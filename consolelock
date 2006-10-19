@@ -1,0 +1,2 @@
+#!/bin/sh -efu
+echo > "/var/run/consolelocker.fifo"
