@@ -43,15 +43,12 @@
 int read_pid (const char *pidfile)
 {
   FILE *f;
-  int pid, retval;
+  int pid;
 
   if (!(f=fopen(pidfile,"r")))
     return 0;
-  retval = fscanf(f,"%d", &pid);
-  if (retval < 1 || retval == EOF) {
-	fprintf(stderr, "Can't read pid , %s.\n", strerror(errno));
-	pid = 0;
-  }
+  if (fscanf(f, "%d", &pid) != 1)
+    pid = 0;
   fclose(f);
   return pid;
 }
@@ -91,35 +88,32 @@ int write_pid (const char *pidfile)
 {
   FILE *f;
   int fd;
-  int pid, retval;
+  int pid;
 
-  if ( ((fd = open(pidfile, O_RDWR|O_CREAT, 0644)) == -1)
+  if ( ((fd = open(pidfile, O_RDWR|O_CREAT|O_TRUNC, 0644)) == -1)
        || ((f = fdopen(fd, "r+")) == NULL) ) {
       fprintf(stderr, "Can't open or create %s.\n", pidfile);
       return 0;
   }
 
   if (flock(fd, LOCK_EX|LOCK_NB) == -1) {
-      retval = fscanf(f, "%d", &pid);
+      if (fscanf(f, "%d", &pid) != 1)
+        pid = 0;
       fclose(f);
-      if (retval < 1 || retval == EOF) {
-	    fprintf(stderr, "Can't read pid , %s.\n", strerror(errno));
-	    return 0;
-      }
-      fprintf(stderr, "Can't lock, lock is held by pid %d.\n", pid);
+      printf("Can't lock, lock is held by pid %d.\n", pid);
       return 0;
   }
 
   pid = getpid();
   if (!fprintf(f,"%d\n", pid)) {
-      fprintf(stderr, "Can't write pid , %s.\n", strerror(errno));
+      printf("Can't write pid , %s.\n", strerror(errno));
       close(fd);
       return 0;
   }
   fflush(f);
 
   if (flock(fd, LOCK_UN) == -1) {
-      fprintf(stderr, "Can't unlock pidfile %s, %s.\n", pidfile, strerror(errno));
+      printf("Can't unlock pidfile %s, %s.\n", pidfile, strerror(errno));
       close(fd);
       return 0;
   }
