@@ -11,6 +11,9 @@ Source: %name-%version.tar
 
 Requires: vlock console-vt-tools
 
+# Automatically added by buildreq on Fri Oct 20 2006 (-bi)
+BuildRequires: help2man
+
 %description
 This package contains a daemon for lock console terminal and virtual consoles.
 

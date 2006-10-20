@@ -246,7 +246,7 @@ daemonize(void) {
 				continue;
 			state = STATE_LOCKED;
 			lock_process = authorize();
-		}		
+		}
 
 		xassert_loop(retval, "read");
 		reopen_fifo = 1;
