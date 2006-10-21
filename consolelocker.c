@@ -1,9 +1,9 @@
 /* -*- mode: Shell-script; tab-width: 8; fill-column: 70; -*- */
 /***** BEGIN LICENSE BLOCK ***** 
- * Copyright (C) 2006 Alexey Gladkov <legion@altlinux.org> 
+ * Copyright (C) 2006 Alexey Gladkov <legion@altlinux.org>
  * 
- * This program is free software; you can redistribute it and/or modify 
- * it under the terms of the GNU General Public License as published by 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or 
  * (at your option) any later version. 
  * 
@@ -12,8 +12,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
  * GNU General Public License for more details. 
  * 
- * You should have received a copy of the GNU General Public License 
- * along with this program; if not, write to the Free Software 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
  ***** END LICENSE BLOCK ******/
 
@@ -44,10 +44,12 @@ enum states {
 const char fifo_path[] = "/var/run/consolelocker.fifo";
 const char consolelock_path[] = "/var/run/console/console.lock";
 const char pidfile_path[] = "/var/run/consolelocker.pid";
+const char sysrq_path[] = "/proc/sys/kernel/sysrq";
 
 volatile pid_t lock_process;
 volatile enum states state;
 volatile int goto_finish;
+volatile int sysrq;
 
 const uid_t def_fifo_owner = 0;
 const gid_t def_fifo_group = 0;
@@ -74,13 +76,65 @@ print_help(int ret)  {
 
 static void __attribute__ ((noreturn))
 print_version(void) {
-        printf("%s version %s\n"
-               "\nCopyright (C) 2006  Alexey Gladkov <legion@altlinux.org>\n"
-               "\nThis is free software; see the source for copying conditions.\n"
-               "There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n"
-               "\nWritten by Alexey Gladkov <legion@altlinux.org>\n",
+        printf("%s version %s\n\n"
+               "Copyright (C) 2006  Alexey Gladkov <legion@altlinux.org>\n\n"
+               "This is free software; see the source for copying conditions.\n"
+               "There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
+               "Written by Alexey Gladkov <legion@altlinux.org>\n",
                __progname, PROJECT_VERSION);
         exit(EXIT_SUCCESS);
+}
+
+static int
+get_sysrq(void) {
+	FILE *fd;
+	int cur_sysrq;
+
+	if ((fd = fopen(sysrq_path, "r")) == NULL) {
+		fprintf(stderr, "fopen: %s\n", strerror(errno));
+		return -1;
+	}
+
+	if ((fscanf(fd, "%d", &cur_sysrq)) != 1) {
+		fprintf(stderr, "fscanf: %s\n", strerror(errno));
+		cur_sysrq = -1;
+	}
+
+	if ((fclose(fd)) != 0) {
+		fprintf(stderr, "fclose: %s\n", strerror(errno));
+		cur_sysrq = -1;
+	}
+	return cur_sysrq;
+}
+
+static int
+set_sysrq(int new_sysrq) {
+	FILE *fd;
+	int old_sysrq = -1;
+
+	if ((old_sysrq = get_sysrq()) == -1)
+		return -1;
+
+	if (new_sysrq == old_sysrq)
+		return 1;
+
+	if ((fd = fopen(sysrq_path, "w")) == NULL) {
+		fprintf(stderr, "fopen: %s\n", strerror(errno));
+		return -1;
+	}
+
+	if (!fprintf(fd,"%d\n", new_sysrq)) {
+		fprintf(stderr, "fprintf: %s\n", strerror(errno));
+		fclose(fd);
+		return -1;
+	}
+	fflush(fd);
+
+	if ((fclose(fd)) != 0) {
+		fprintf(stderr, "fclose: %s\n", strerror(errno));
+		return -1;
+	}
+	return 1;
 }
 
 static void
@@ -92,7 +146,10 @@ sigchld_handler(int sig __attribute__((__unused__))) {
 
 	if (retval == 0)
 		return;
-	
+
+	if ((set_sysrq(sysrq)) == -1)
+		error(EXIT_FAILURE, errno, "set_sysrq");
+
 	if (state != STATE_READY)
 		state = STATE_READY;
 
@@ -110,7 +167,7 @@ readgroup(const char *filename) {
 	FILE *fd;
 	struct passwd *pw = NULL;
 	size_t len = 0;
-	
+
 	if ((fd = fopen(filename, "r")) == NULL)
 		error(EXIT_FAILURE, errno, "fopen");
 
@@ -136,10 +193,14 @@ authorize(void) {
 	if ((pid = fork()) == -1)
 		error(EXIT_FAILURE, errno, "fork");
 	if (pid == 0) {
-		if ((execl("/usr/bin/openvt", 
-			"openvt", "-s", "-l", "-w", "--", 
-				"su", "-l", "-c", "clear; vlock -a", consoleowner, 
-			(char *) NULL)) == -1)
+		char *envp[] = { NULL };
+
+		if ((setsid()) == -1)
+			error(EXIT_FAILURE, errno, "setsid");
+
+		if ((execle("/usr/bin/openvt", 
+			"openvt", "-s", "-l", "-w", "--", "su", "-l", "-c", "clear && vlock -c", consoleowner,
+			(char *) NULL, envp)) == -1)
 			error(EXIT_FAILURE, errno, "execl");
 	}
 	return pid;
@@ -192,7 +253,7 @@ daemonize(void) {
 #define xassert_loop(x, y) if (x == -1) { \
 	error(0, errno, y); \
 	rc = EXIT_FAILURE; \
-	break; \
+	goto fail; \
 }
 
 	while (goto_finish == 0) {
@@ -202,16 +263,18 @@ daemonize(void) {
 			if (state == STATE_LOCKED && lock_process > 0) {
 #if 0
 				/* Kill vlock process, if nobody logged in. */
-				xassert_loop ((kill( -lock_process, SIGKILL)), "kill");
+				pid_t pg_pid;
+				xassert_loop((pg_pid = getpgid(lock_process)), "getpgid");
+				xassert_loop ((killpg(pg_pid, SIGKILL)), "killpg");
 #endif
 				lock_process = -1;
 			}
-			
+
 			xassert_loop((chown(fifo_path, def_fifo_owner, def_fifo_group)), "chown");
 			state = STATE_PASSIVE;
 		} else if (state == STATE_PASSIVE) {
 			readgroup(consolelock_path);
-			
+
 			xassert_loop((chown(fifo_path, fifo_owner, fifo_group)), "chown");
 			state = STATE_READY;
 		}
@@ -226,18 +289,18 @@ daemonize(void) {
 		/* Watch to see when it has input. */
 		FD_ZERO(&rfds);
 		FD_SET(fd, &rfds);
-      
+
 		/* Wait up to five seconds. */
 		tv.tv_sec = 5;
 		tv.tv_usec = 0;
-		
+
 		retval = -1;
 		errno = EINTR;
 		while (retval < 0 && errno == EINTR)
 			retval = select((fd + 1), &rfds, NULL, NULL, &tv);
-		
+
 		xassert_loop(retval, "select");
-		
+
 		if (retval == 0)
 			continue;
 
@@ -245,15 +308,23 @@ daemonize(void) {
 			if (state != STATE_READY)
 				continue;
 			state = STATE_LOCKED;
+
+			xassert_loop((sysrq = get_sysrq()), "get_sysrq");
+			if (sysrq > 0)
+				set_sysrq(0);
+
 			lock_process = authorize();
 		}
 
 		xassert_loop(retval, "read");
 		reopen_fifo = 1;
 	}
-
+fail:
 	if (consoleowner)
     		free(consoleowner);
+
+	if ((set_sysrq(sysrq)) == -1)
+		error(EXIT_FAILURE, errno, "set_sysrq");
 
 	if ((chown(fifo_path, def_fifo_owner, def_fifo_group)) == -1)
 		error(EXIT_FAILURE, errno, "chown");
@@ -282,7 +353,7 @@ main(int argc, char ** argv) {
 		c = getopt_long (argc, argv, "DhV", long_options, &option_index);
 		if (c == -1)
     			break;
-    
+
 		switch (c) {
 			case 'D': nodaemon = 1; break;
 			case 'V': print_version(); break;
@@ -290,7 +361,7 @@ main(int argc, char ** argv) {
 			case 'h': print_help(EXIT_SUCCESS); break;
 		}
 	}
-	
+
 	if (getuid())
 		error(EXIT_FAILURE, 0, "must be root");
 
@@ -313,6 +384,6 @@ main(int argc, char ** argv) {
 
 	if (nodaemon == 0 && daemon(0, 0) == -1)
 		error(EXIT_FAILURE, errno, "daemon");
-	
+
 	return daemonize();
 }
