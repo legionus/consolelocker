@@ -2,7 +2,7 @@
 #
 # Initialize consolelocker.
 #
-# chkconfig: 345 48 52
+# chkconfig: 345 39 55
 # description: This package loads consolelocker.
 
 # Source function library.

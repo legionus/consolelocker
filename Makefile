@@ -1,9 +1,11 @@
 PROJECT = consolelocker
 VERSION = 0.0.1
+WRAPPERS = vlocka
 MAN8PAGES = $(PROJECT).8
-TARGETS = $(PROJECT) $(MAN8PAGES)
+TARGETS = $(PROJECT) $(WRAPPERS) $(MAN8PAGES)
 
 sbindir = /usr/sbin
+helperdir = /usr/libexec/consolelocker
 DESTDIR =
 
 CC = gcc
@@ -15,7 +17,10 @@ WARNINGS = -Wall -Wextra -Werror -W -Wshadow -Wpointer-arith -Wcast-align \
 	-Wwrite-strings -Wconversion -Waggregate-return -Wstrict-prototypes \
 	-Wmissing-prototypes -Wmissing-declarations -Wmissing-noreturn \
 	-Wmissing-format-attribute -Wredundant-decls -Wdisabled-optimization 
-CPPFLAGS = -std=gnu99 $(WARNINGS) -D_GNU_SOURCE -DPROJECT_VERSION=\"$(VERSION)\"
+
+CPPFLAGS = -std=gnu99 $(WARNINGS) -D_GNU_SOURCE -DPROJECT_VERSION=\"$(VERSION)\" \
+	-DVLOCK_WRAPPER=\"$(helperdir)/vlocka\"
+
 CFLAGS = -I. -pipe -O2
 
 SRC = pidfile.c consolelocker.c
@@ -32,6 +37,8 @@ $(PROJECT): $(OBJ)
 install: all
 	$(MKDIR_P) -m755 $(DESTDIR)$(sbindir)
 	$(INSTALL) -p -m700 $(PROJECT) $(DESTDIR)$(sbindir)/
+	$(MKDIR_P) -m755 $(DESTDIR)$(helperdir)
+	$(INSTALL) -p -m700 $(WRAPPERS) $(DESTDIR)$(helperdir)/
 
 clean:
 	$(RM) $(TARGETS) $(DEP) $(OBJ) core *~

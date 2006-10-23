@@ -193,14 +193,12 @@ authorize(void) {
 	if ((pid = fork()) == -1)
 		error(EXIT_FAILURE, errno, "fork");
 	if (pid == 0) {
-		char *envp[] = { NULL };
-
 		if ((setsid()) == -1)
 			error(EXIT_FAILURE, errno, "setsid");
 
-		if ((execle("/usr/bin/openvt", 
-			"openvt", "-s", "-l", "-w", "--", "su", "-l", "-c", "clear && vlock -c", consoleowner,
-			(char *) NULL, envp)) == -1)
+		if ((execl("/usr/bin/openvt", 
+			"openvt", "-s", "-l", "-w", "--", VLOCK_WRAPPER, consoleowner,
+			(char *) NULL)) == -1)
 			error(EXIT_FAILURE, errno, "execl");
 	}
 	return pid;

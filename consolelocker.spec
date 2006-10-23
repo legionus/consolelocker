@@ -1,6 +1,6 @@
 Name: consolelocker
 Version: 0.0.1
-Release: alt2
+Release: alt3
 
 Summary: Daemon for lock console terminal and virtual consoles.
 License: GPL
@@ -34,9 +34,14 @@ This package contains a daemon for lock console terminal and virtual consoles.
 %_bindir/*
 %_sbindir/*
 %_initrddir/*
+%_usr/libexec/%name
 %config(noreplace) %_sysconfdir/cron.d/%name
 
 %changelog
+* Mon Oct 23 2006 Alexey Gladkov <legion@altlinux.ru> 0.0.1-alt3
+- Add wrapper for vlock.
+- consolelocker.service: Change start and stop priority levels.
+
 * Sun Oct 22 2006 Alexey Gladkov <legion@altlinux.ru> 0.0.1-alt2
 - Add block sysrq.
 - Fix copyright.
