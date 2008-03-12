@@ -196,7 +196,7 @@ authorize(void) {
 		if ((setsid()) == -1)
 			error(EXIT_FAILURE, errno, "setsid");
 
-		if ((execl("/usr/bin/openvt", 
+		if ((execl("/bin/openvt",
 			"openvt", "-s", "-l", "-w", "--", VLOCK_WRAPPER, consoleowner,
 			(char *) NULL)) == -1)
 			error(EXIT_FAILURE, errno, "execl");

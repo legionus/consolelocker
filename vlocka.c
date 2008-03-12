@@ -72,4 +72,6 @@ main(int argc, char ** argv) {
 
 	if ((execl("/usr/bin/vlock", "vlocka", "-a", (char *) NULL)) == -1)
 		error(EXIT_FAILURE, errno, "execl");
+
+	clear();
 }
