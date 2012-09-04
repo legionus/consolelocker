@@ -20,7 +20,7 @@ start()
 
 stop()
 {
-	msg_stopping $"consolelocker"
+	msg_stopping "consolelocker"
 	stop_daemon --pidfile "$PIDFILE" --name consolelocker -TERM -- consolelocker
 	RETVAL=$?
 	return $RETVAL
