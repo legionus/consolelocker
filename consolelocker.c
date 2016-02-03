@@ -283,7 +283,9 @@ daemonize(void) {
 
 		/* Open the FIFO */
 		if (reopen_fifo == 1) {
-			xassert_loop((fd != -1 && (close(fd)) == -1), "close");
+			if (fd != -1) {
+				xassert_loop(close(fd), "close");
+			}
 			xassert_loop((fd = open(fifo_path, O_RDONLY | O_NONBLOCK)), "open");
 			reopen_fifo = 0;
 		}
