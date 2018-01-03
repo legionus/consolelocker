@@ -1,55 +1,11 @@
-#!/bin/sh
-#
-# Initialize consolelocker.
-#
-# chkconfig: 345 39 55
-# description: This package loads consolelocker.
+[Unit]
+Description=A daemon to lock console terminal and virtual consoles.
+Documentation=man:consolelocker(8)
 
-# Source function library.
-. /etc/init.d/functions
+[Service]
+EnvironmentFile=-/etc/sysconfig/consolelocker
+ExecStart=/usr/sbin/consolelocker -f -g $GROUP
+Restart=on-failure
 
-PIDFILE=/var/run/consolelocker.pid
-RETVAL=0
-
-start()
-{
-	start_daemon --pidfile "$PIDFILE" --user root --name consolelocker -- consolelocker
-	RETVAL=$?
-	return $RETVAL
-}
-
-stop()
-{
-	msg_stopping "consolelocker"
-	stop_daemon --pidfile "$PIDFILE" --name consolelocker -TERM -- consolelocker
-	RETVAL=$?
-	return $RETVAL
-}
-
-restart()
-{
-	stop
-	start
-}
-
-# See how we were called.
-case "$1" in
-	start)
-		start
-		;;
-	stop)
-		stop
-		;;
-	reload|restart)
-		restart
-		;;
-	status)
-		status --pidfile "$PIDFILE" --name consolelocker -- consolelocker
-		RETVAL=$?
-		;;
-	*)
-		msg_usage "${0##*/} {start|stop|restart|status}"
-		RETVAL=1
-esac
-
-exit $RETVAL
+[Install]
+WantedBy=multi-user.target

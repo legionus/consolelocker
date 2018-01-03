@@ -1,4 +1,4 @@
-.\" Copyright (C) 2006  Alexey Gladkov <legion@altlinux.org>
+.\" Copyright (C) 2006-2018  Alexey Gladkov <legion@altlinux.org>
 .\"
 .\" This file is free software; you can redistribute it and/or modify
 .\" it under the terms of the GNU General Public License as published by
@@ -19,11 +19,9 @@
 
 [FILES]
 .TP
-.I /var/run/consolelocker.fifo
+.I /var/run/consolelocker
 .TP
 \fI/var/run/consolelocker.pid
-.TP
-\fI/var/run/console.lock
 
 [SEE ALSO]
 .BR vlock (1),

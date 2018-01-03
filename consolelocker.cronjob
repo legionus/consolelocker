@@ -1,1 +1,1 @@
-*/45	*	*	*	*	root	consolelock
+*/45	*	*	*	*	root	/usr/libexec/consolelocker/consolelock.pam-console

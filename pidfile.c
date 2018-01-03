@@ -40,17 +40,17 @@
  * 0 is returned if either there's no pidfile, it's empty
  * or no pid can be read.
  */
-int read_pid (const char *pidfile)
+int read_pid(const char *pidfile)
 {
-  FILE *f;
-  int pid;
+	FILE *f;
+	int pid;
 
-  if (!(f=fopen(pidfile,"r")))
-    return 0;
-  if (fscanf(f, "%d", &pid) != 1)
-    pid = 0;
-  fclose(f);
-  return pid;
+	if (!(f = fopen(pidfile, "r")))
+		return 0;
+	if (fscanf(f, "%d", &pid) != 1)
+		pid = 0;
+	fclose(f);
+	return pid;
 }
 
 /* check_pid
@@ -59,24 +59,24 @@ int read_pid (const char *pidfile)
  * table (using /proc) to determine if the process already exists. If
  * so 1 is returned, otherwise 0.
  */
-int check_pid (const char *pidfile)
+int check_pid(const char *pidfile)
 {
-  int pid = read_pid(pidfile);
+	int pid = read_pid(pidfile);
 
-  /* Amazing ! _I_ am already holding the pid file... */
-  if ((!pid) || (pid == getpid ()))
-    return 0;
+	/* Amazing ! _I_ am already holding the pid file... */
+	if ((!pid) || (pid == getpid()))
+		return 0;
 
-  /*
+	/*
    * The 'standard' method of doing this is to try and do a 'fake' kill
    * of the process.  If an ESRCH error is returned the process cannot
    * be found -- GW
    */
-  /* But... errno is usually changed only on error.. */
-  if (kill(pid, 0) && errno == ESRCH)
-	  return(0);
+	/* But... errno is usually changed only on error.. */
+	if (kill(pid, 0) && errno == ESRCH)
+		return (0);
 
-  return pid;
+	return pid;
 }
 
 /* write_pid
@@ -84,42 +84,41 @@ int check_pid (const char *pidfile)
  * Writes the pid to the specified file. If that fails 0 is
  * returned, otherwise the pid.
  */
-int write_pid (const char *pidfile)
+int write_pid(const char *pidfile)
 {
-  FILE *f;
-  int fd;
-  int pid;
+	FILE *f;
+	int fd;
+	int pid;
 
-  if ( ((fd = open(pidfile, O_RDWR|O_CREAT|O_TRUNC, 0644)) == -1)
-       || ((f = fdopen(fd, "r+")) == NULL) ) {
-      fprintf(stderr, "Can't open or create %s.\n", pidfile);
-      return 0;
-  }
+	if (((fd = open(pidfile, O_RDWR | O_CREAT | O_TRUNC, 0644)) == -1) || ((f = fdopen(fd, "r+")) == NULL)) {
+		fprintf(stderr, "Can't open or create %s.\n", pidfile);
+		return 0;
+	}
 
-  if (flock(fd, LOCK_EX|LOCK_NB) == -1) {
-      if (fscanf(f, "%d", &pid) != 1)
-        pid = 0;
-      fclose(f);
-      printf("Can't lock, lock is held by pid %d.\n", pid);
-      return 0;
-  }
+	if (flock(fd, LOCK_EX | LOCK_NB) == -1) {
+		if (fscanf(f, "%d", &pid) != 1)
+			pid = 0;
+		fclose(f);
+		printf("Can't lock, lock is held by pid %d.\n", pid);
+		return 0;
+	}
 
-  pid = getpid();
-  if (!fprintf(f,"%d\n", pid)) {
-      printf("Can't write pid , %s.\n", strerror(errno));
-      close(fd);
-      return 0;
-  }
-  fflush(f);
+	pid = getpid();
+	if (!fprintf(f, "%d\n", pid)) {
+		printf("Can't write pid , %s.\n", strerror(errno));
+		close(fd);
+		return 0;
+	}
+	fflush(f);
 
-  if (flock(fd, LOCK_UN) == -1) {
-      printf("Can't unlock pidfile %s, %s.\n", pidfile, strerror(errno));
-      close(fd);
-      return 0;
-  }
-  close(fd);
+	if (flock(fd, LOCK_UN) == -1) {
+		printf("Can't unlock pidfile %s, %s.\n", pidfile, strerror(errno));
+		close(fd);
+		return 0;
+	}
+	close(fd);
 
-  return pid;
+	return pid;
 }
 
 /* remove_pid
@@ -127,8 +126,7 @@ int write_pid (const char *pidfile)
  * Remove the the specified file. The result from unlink(2)
  * is returned
  */
-int remove_pid (const char *pidfile)
+int remove_pid(const char *pidfile)
 {
-  return unlink (pidfile);
+	return unlink(pidfile);
 }
-  

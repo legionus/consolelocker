@@ -2,7 +2,7 @@ Name: consolelocker
 Version: 0.0.2
 Release: alt1
 
-Summary: Daemon for lock console terminal and virtual consoles.
+Summary: Daemon to lock console terminal and virtual consoles.
 License: GPL
 Group: Terminals
 Packager: Alexey Gladkov <legion@altlinux.org>
@@ -15,7 +15,7 @@ Requires: vlock console-vt-tools
 BuildRequires: help2man
 
 %description
-This package contains a daemon for lock console terminal and virtual consoles.
+This package contains a daemon to lock console terminal and virtual consoles.
 
 %prep
 %setup -q
@@ -25,9 +25,9 @@ This package contains a daemon for lock console terminal and virtual consoles.
 
 %install
 %make_install install DESTDIR=%buildroot
-%__mkdir_p %buildroot/%_bindir
-%__install -D -m755 consolelock %buildroot/%_bindir/
+
 %__install -D -m644 %name.cronjob %buildroot/%_sysconfdir/cron.d/%name
+%__install -D -m755 %name.service %buildroot/%_initrddir/%name
 %__install -D -m755 %name.service %buildroot/%_initrddir/%name
 
 %post

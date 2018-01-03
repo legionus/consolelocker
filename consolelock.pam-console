@@ -1,0 +1,11 @@
+#!/bin/sh
+
+user=
+
+[ ! -f /var/run/console/console.lock ] ||
+	read user < /var/run/console/console.lock ||:
+
+[ -z "$user" ] ||
+	exec su -c consolelock "$user"
+
+exec consolelock

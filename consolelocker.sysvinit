@@ -1,0 +1,58 @@
+#!/bin/sh
+#
+# Initialize consolelocker.
+#
+# chkconfig: 345 39 55
+# description: This package loads consolelocker.
+
+# Source function library.
+. /etc/init.d/functions
+
+PIDFILE=/var/run/consolelocker.pid
+RETVAL=0
+
+GROUP=
+SourceIfNotEmpty /etc/sysconfig/consolelocker
+
+start()
+{
+	start_daemon --pidfile "$PIDFILE" --name consolelocker -- consolelocker ${GROUP:+-g "$GROUP"}
+	RETVAL=$?
+	return $RETVAL
+}
+
+stop()
+{
+	msg_stopping $"consolelocker"
+	stop_daemon --pidfile "$PIDFILE" --name consolelocker -TERM -- consolelocker
+	RETVAL=$?
+	return $RETVAL
+}
+
+restart()
+{
+	stop
+	start
+}
+
+# See how we were called.
+case "$1" in
+	start)
+		start
+		;;
+	stop)
+		stop
+		;;
+	reload|restart)
+		restart
+		;;
+	status)
+		status --pidfile "$PIDFILE" --name consolelocker -- consolelocker
+		RETVAL=$?
+		;;
+	*)
+		msg_usage "${0##*/} {start|stop|restart|status}"
+		RETVAL=1
+esac
+
+exit $RETVAL
