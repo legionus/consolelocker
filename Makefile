@@ -1,5 +1,5 @@
 PROJECT = consolelocker
-VERSION = 0.0.1
+VERSION = 1.0.0
 
 MAN8PAGES = consolelocker.8
 
