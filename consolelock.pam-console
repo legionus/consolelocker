@@ -1,9 +1,14 @@
 #!/bin/sh
 
+export LANG=C
+
 user=
 
 [ ! -f /var/run/console/console.lock ] ||
 	read user < /var/run/console/console.lock ||:
+
+[ -n "$user" ] ||
+	user="$(who -s | head -1 | cut -d' ' -f1)"
 
 [ -z "$user" ] ||
 	exec su -c consolelock "$user"
