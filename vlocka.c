@@ -14,9 +14,12 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+#include <linux/oom.h> /* OOM_DISABLE */
+
 #include <sys/types.h>
 #include <sys/wait.h>
 
+#include <fcntl.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -59,6 +62,7 @@ str2int(const char *value)
 int
 main(int argc, char ** argv)
 {
+	int oom_adj;
 	int noclear = 0;
 	struct passwd *pw = NULL;
 
@@ -79,6 +83,11 @@ main(int argc, char ** argv)
 			error(EXIT_SUCCESS, 0, "rollback to root");
 			noclear = 1;
 		}
+	}
+
+	if ((oom_adj = open("/proc/self/oom_adj", O_WRONLY|O_CLOEXEC)) != -1) {
+		dprintf(oom_adj, "%d", OOM_DISABLE);
+		close(oom_adj);
 	}
 
 	if (!pw && !(pw = getpwuid(0)))

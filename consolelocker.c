@@ -15,6 +15,8 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <linux/oom.h> /* OOM_DISABLE */
+
 #include <sys/param.h> /* MAXPATHLEN */
 #include <sys/signalfd.h>
 #include <sys/types.h>
@@ -38,6 +40,7 @@
 #include <signal.h>
 #include <pwd.h>
 #include <grp.h>
+#include <fcntl.h>
 #include <errno.h>
 #include <error.h>
 
@@ -213,6 +216,7 @@ int main(int argc, char **argv)
 	int rc = EXIT_FAILURE;
 	int i, daemonize = 1;
 	int loglevel = -1;
+	int oom_adj;
 
 	const char *pidfile = NULL;
 	const char *grpname = NULL;
@@ -267,6 +271,11 @@ int main(int argc, char **argv)
 		goto exit;
 
 	m = umask(017);
+
+	if ((oom_adj = open("/proc/self/oom_adj", O_WRONLY|O_CLOEXEC)) != -1) {
+		dprintf(oom_adj, "%d", OOM_DISABLE);
+		close(oom_adj);
+	}
 
 	if ((fd_conn = unix_listen(SOCKETDIR, PROJECT)) < 0)
 		goto exit;
