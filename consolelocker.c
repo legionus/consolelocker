@@ -163,7 +163,7 @@ consolelock(uid_t uid)
 
 	info("console is locked by the %s", s_uid);
 
-	if ((execl("/bin/openvt", "openvt", "-s", "-l", "-w", "--", VLOCK_WRAPPER, s_uid, (char *) NULL)) < 0)
+	if ((execl("/bin/openvt", "openvt", "-f", "-c", "63", "-s", "-l", "-w", "--", VLOCK_WRAPPER, s_uid, (char *) NULL)) < 0)
 		fatal("execl: %m");
 
 	return -1;
